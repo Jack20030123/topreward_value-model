@@ -310,18 +310,22 @@ class MetaworldImageEmbeddingWrapper(gym.Wrapper):
     def _observation(self, observation):
         image = observation["image"]
         image = image[None, None, :, :, :]
-        
+
         # Encode image for reward calculation (using reward model encoder)
         reward_image_feature = self.reward_model.encode_images(image).squeeze()
         observation["reward_image_feature_0"] = reward_image_feature
-        
+
+        # If TOPReward, also store raw frame for VLM queries
+        if self.reward_model.name == "topreward":
+            self.reward_model.store_raw_frame(observation["image"])
+
         # Encode image for policy (must use policy observation encoder)
         if self.policy_observation_encoder is not None:
             policy_image_feature = self.policy_observation_encoder.encode_images(image).squeeze()
             observation["policy_image_feature_0"] = policy_image_feature
         else:
             raise ValueError("policy_observation_encoder is required for generating policy input features")
-        
+
         # For backward compatibility, keep original image_feature_0 (using reward model encoding)
         observation["image_feature_0"] = reward_image_feature
 

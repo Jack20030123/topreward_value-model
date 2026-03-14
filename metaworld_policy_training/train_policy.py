@@ -50,6 +50,7 @@ from offline_rl_algorithms.custom_feature_extractors import FlatRangeFeaturesExt
 # from reward_model import image_encoders
 from reward_model.base_reward_model import BaseRewardModel
 from reward_model.rewind_reward_model import ReWiNDRewardModel
+from reward_model.topreward_reward_model import TOPRewardModel
 
 from reward_model.env_reward_model import EnvRewardModel
 from stable_baselines3.common.logger import configure
@@ -161,6 +162,16 @@ def parse_reward_model(reward_cfg: DictConfig) -> BaseRewardModel:
             reward_type="dense",
             model_path=reward_cfg.model_path,
             success_bonus=reward_cfg.success_bonus,
+        )
+    elif reward_string == "topreward":
+        reward_model = TOPRewardModel(
+            api_url=reward_cfg.api_url,
+            model_name=reward_cfg.vlm_model_name,
+            camera_names=reward_cfg.camera_names,
+            batch_size=reward_cfg.batch_size,
+            reward_at_every_step=reward_cfg.reward_at_every_step,
+            success_bonus=reward_cfg.success_bonus,
+            num_prefix_samples=reward_cfg.num_prefix_samples,
         )
     elif reward_string == "debug":
         reward_model = EnvRewardModel(

@@ -1,0 +1,27 @@
+# @package _global_
+
+general_training:
+  dense_rewards_at_end: false
+  entropy_term: "auto"
+
+
+reward_model:
+  name: 'topreward'
+  batch_size: 64
+  model_path: 'none'  # TOPReward doesn't use a local checkpoint
+  reward_at_every_step: true
+  camera_names: ["image"]
+
+  # vLLM server URL (set via environment variable or override)
+  api_url: ${oc.env:TOPREWARD_API_URL,http://localhost:8000}
+  vlm_model_name: "Qwen/Qwen3-VL-8B-Instruct"
+  num_prefix_samples: 15
+
+  # use_progress_diff: use reward = P(s') - P(s) instead of P(s)
+  use_progress_diff: false
+
+  success_bonus: 64.0
+
+environment:
+  is_state_based: false
+  reward_image_key: 'image'

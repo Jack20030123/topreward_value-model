@@ -237,7 +237,11 @@ class LearnedRewardWrapper(gym.Wrapper):
 
         # Language features used by policy (384-dim MiniLM, for LanguageWrapper)
         self.policy_language_features = language_features
-        
+
+        # For TOPReward, pass the raw instruction text to the reward model
+        if hasattr(self.reward_model, 'set_instruction') and text_instruction is not None:
+            self.reward_model.set_instruction(text_instruction)
+
         # Language features used for reward calculation (needs to be re-encoded by reward model)
         if text_instruction is not None:
             # Use reward model to encode text
@@ -421,6 +425,10 @@ class LearnedRewardWrapper(gym.Wrapper):
             self.past_observations[key] = []
         self.counter = 0
         self.prev_progress = None
+
+        # Clear raw frames buffer for TOPReward on episode reset
+        if self.reward_model.name == "topreward":
+            self.reward_model.clear_raw_frames()
 
         obs = self.env.reset()
 

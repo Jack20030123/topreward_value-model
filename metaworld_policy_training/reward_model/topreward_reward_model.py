@@ -9,6 +9,7 @@ task completion progress.
 
 import os
 import base64
+import fcntl
 import io
 import requests
 import numpy as np
@@ -62,6 +63,9 @@ class TOPRewardModel(BaseRewardModel):
 
         # Store the task instruction text (set via set_instruction)
         self._instruction = None
+
+        # File lock to prevent concurrent VLM requests from multiple training jobs
+        self._lock_path = "/project2/biyik_1165/haobaizh/rewind_topreward/logs/vllm_request.lock"
 
     def set_instruction(self, instruction: str):
         """Set the task instruction for reward computation."""
@@ -163,13 +167,20 @@ class TOPRewardModel(BaseRewardModel):
         }
 
         try:
-            resp = requests.post(
-                f"{self.api_url}/v1/chat/completions",
-                json=payload,
-                timeout=120,
-            )
-            resp.raise_for_status()
-            result = resp.json()
+            # File lock: only one training job queries the server at a time
+            lock_file = open(self._lock_path, "w")
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
+            try:
+                resp = requests.post(
+                    f"{self.api_url}/v1/chat/completions",
+                    json=payload,
+                    timeout=120,
+                )
+                resp.raise_for_status()
+                result = resp.json()
+            finally:
+                fcntl.flock(lock_file, fcntl.LOCK_UN)
+                lock_file.close()
 
             # Extract logprob of "True" from the first generated token
             logprobs_content = result["choices"][0]["logprobs"]["content"]

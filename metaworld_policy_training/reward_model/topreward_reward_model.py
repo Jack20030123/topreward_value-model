@@ -65,7 +65,10 @@ class TOPRewardModel(BaseRewardModel):
         self._instruction = None
 
         # File lock to prevent concurrent VLM requests from multiple training jobs
-        self._lock_path = "/project2/biyik_1165/haobaizh/rewind_topreward/logs/vllm_request.lock"
+        self._lock_path = os.environ.get(
+            "TOPREWARD_LOCK_PATH",
+            "/project2/biyik_1165/haobaizh/rewind_topreward/logs/vllm_request.lock",
+        )
 
     def set_instruction(self, instruction: str):
         """Set the task instruction for reward computation."""

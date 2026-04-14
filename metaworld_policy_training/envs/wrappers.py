@@ -299,6 +299,13 @@ class LearnedRewardWrapper(gym.Wrapper):
         self.__dict__.update(state)
 
     def _compute_reward(self):
+        if self.reward_model.name == "topreward":
+            # TOPReward uses its raw-frame buffer and does not need the
+            # 768-dim DINO history tensor used by embedding-based rewards.
+            return self.reward_model.calculate_rewards(
+                self.reward_language_features, None
+            )
+
         # print(len(self.past_observations["observation.images.main"]))
         if not hasattr(self.reward_model, "multiple_cameras"):
             stacked_sequence = np.stack(
@@ -348,13 +355,15 @@ class LearnedRewardWrapper(gym.Wrapper):
         if f"image_feature_{self.image_reward_idx}" in obs:
             encoded_image = obs[f"image_feature_{self.image_reward_idx}"]
 
-        encoded_images = {}
-        for i, key in enumerate(self.image_keys):
-            # Reward calculation can only use features encoded by reward model
-            if f"reward_image_feature_{i}" in obs:
-                encoded_images[key] = obs[f"reward_image_feature_{i}"]
-            else:
-                raise KeyError(f"reward_image_feature_{i} not found in observation. Reward calculation requires reward model encoded features.")
+        encoded_images = None
+        if self.reward_model.name != "topreward":
+            encoded_images = {}
+            for i, key in enumerate(self.image_keys):
+                # Reward calculation can only use features encoded by reward model
+                if f"reward_image_feature_{i}" in obs:
+                    encoded_images[key] = obs[f"reward_image_feature_{i}"]
+                else:
+                    raise KeyError(f"reward_image_feature_{i} not found in observation. Reward calculation requires reward model encoded features.")
 
         if self.reward_model.name == "dense" or self.dense_eval:
             reward = original_reward / self.reward_divisor
@@ -438,12 +447,13 @@ class LearnedRewardWrapper(gym.Wrapper):
 
         obs = self.env.reset()
 
-        for i, key in enumerate(self.image_keys):
-            # Reward calculation can only use features encoded by reward model
-            if f"reward_image_feature_{i}" in obs:
-                self.past_observations[key].append(obs[f"reward_image_feature_{i}"])
-            else:
-                raise KeyError(f"reward_image_feature_{i} not found in observation. Reward calculation requires reward model encoded features.")
+        if self.reward_model.name != "topreward":
+            for i, key in enumerate(self.image_keys):
+                # Reward calculation can only use features encoded by reward model
+                if f"reward_image_feature_{i}" in obs:
+                    self.past_observations[key].append(obs[f"reward_image_feature_{i}"])
+                else:
+                    raise KeyError(f"reward_image_feature_{i} not found in observation. Reward calculation requires reward model encoded features.")
 
         # Compute initial progress for diff mode
         if self.use_progress_diff and self.reward_at_every_step:
@@ -845,5 +855,4 @@ class ACTTemporalEnsemblerWrapper(gym.Wrapper):
     def __setstate__(self, state):
         """Custom method for unpickling"""
         self.__dict__.update(state)
-
 

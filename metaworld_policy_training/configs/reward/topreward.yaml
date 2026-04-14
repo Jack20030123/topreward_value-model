@@ -17,8 +17,10 @@ reward_model:
   vlm_model_name: "Qwen/Qwen3-VL-8B-Instruct"
   num_prefix_samples: 15
 
-  # use_progress_diff: use reward = P(s') - P(s) instead of P(s)
+  # use_progress_diff: use reward = scale * (gamma * P(s') - P(s)) instead of P(s)
   use_progress_diff: false
+  diff_gamma: 1.0
+  diff_reward_scale: 1.0
 
   success_bonus: 64.0
 

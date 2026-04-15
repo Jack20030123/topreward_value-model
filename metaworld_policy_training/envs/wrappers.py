@@ -463,6 +463,11 @@ class LearnedRewardWrapper(gym.Wrapper):
                 else:
                     raise KeyError(f"reward_image_feature_{i} not found in observation. Reward calculation requires reward model encoded features.")
 
+        # Diff rewards should score the first action as gamma * P(s1) - P(s0),
+        # matching the offline H5 label construction.
+        if self.use_progress_diff and self.reward_at_every_step:
+            self.prev_progress = self._compute_reward()
+
         return obs
 
 

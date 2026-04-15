@@ -16,6 +16,8 @@ reward_model:
   api_url: ${oc.env:TOPREWARD_API_URL,http://localhost:8000}
   vlm_model_name: "Qwen/Qwen3-VL-8B-Instruct"
   num_prefix_samples: 15
+  request_timeout: 120.0
+  request_retries: 1
 
   # use_progress_diff: use reward = scale * (gamma * P(s') - P(s)) instead of P(s)
   use_progress_diff: false
@@ -25,6 +27,7 @@ reward_model:
   base_reward_value: -1.0
 
   success_bonus: 0.0
+  reward_divisor: 1.0
 
 environment:
   is_state_based: false

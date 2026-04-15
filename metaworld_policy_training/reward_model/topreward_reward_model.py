@@ -34,6 +34,8 @@ class TOPRewardModel(BaseRewardModel):
         reward_at_every_step: bool = False,
         success_bonus: float = 10.0,
         num_prefix_samples: int = 15,
+        request_timeout: float = 120.0,
+        request_retries: int = 1,
         fps: float = 2.0,
     ):
         super().__init__(device, batch_size, success_bonus=success_bonus)
@@ -42,6 +44,8 @@ class TOPRewardModel(BaseRewardModel):
         self.api_url = api_url.rstrip("/")
         self.model_name = model_name
         self.num_prefix_samples = num_prefix_samples
+        self.request_timeout = request_timeout
+        self.request_retries = max(int(request_retries), 1)
         self.fps = fps
 
         # Track raw rewards for min-max normalization across episode
@@ -185,21 +189,31 @@ class TOPRewardModel(BaseRewardModel):
             "top_logprobs": 20,
         }
 
-        try:
-            # File lock: only one training job queries the server at a time
-            lock_file = open(self._lock_path, "w")
-            fcntl.flock(lock_file, fcntl.LOCK_EX)
+        for attempt in range(1, self.request_retries + 1):
+            lock_file = None
             try:
+                # File lock: only one training job queries the server at a time
+                lock_file = open(self._lock_path, "w")
+                fcntl.flock(lock_file, fcntl.LOCK_EX)
                 resp = requests.post(
                     f"{self.api_url}/v1/chat/completions",
                     json=payload,
-                    timeout=120,
+                    timeout=self.request_timeout,
                 )
                 resp.raise_for_status()
                 result = resp.json()
+            except Exception as e:
+                print(
+                    f"[TOPReward] VLM query failed on attempt "
+                    f"{attempt}/{self.request_retries}: {e}"
+                )
+                if attempt == self.request_retries:
+                    return -10.0
+                continue
             finally:
-                fcntl.flock(lock_file, fcntl.LOCK_UN)
-                lock_file.close()
+                if lock_file is not None:
+                    fcntl.flock(lock_file, fcntl.LOCK_UN)
+                    lock_file.close()
 
             # Extract logprob of "True" from the first generated token
             logprobs_content = result["choices"][0]["logprobs"]["content"]
@@ -214,10 +228,6 @@ class TOPRewardModel(BaseRewardModel):
                     return first_token["logprob"]
 
             # Fallback: return a very low reward
-            return -10.0
-
-        except Exception as e:
-            print(f"[TOPReward] VLM query failed: {e}")
             return -10.0
 
     # ── Reward calculation (called by LearnedRewardWrapper) ──

@@ -172,6 +172,8 @@ def parse_reward_model(reward_cfg: DictConfig) -> BaseRewardModel:
             reward_at_every_step=reward_cfg.reward_at_every_step,
             success_bonus=reward_cfg.success_bonus,
             num_prefix_samples=reward_cfg.num_prefix_samples,
+            request_timeout=reward_cfg.get("request_timeout", 120.0),
+            request_retries=reward_cfg.get("request_retries", 1),
         )
     elif reward_string == "debug":
         reward_model = EnvRewardModel(

@@ -463,10 +463,6 @@ class LearnedRewardWrapper(gym.Wrapper):
                 else:
                     raise KeyError(f"reward_image_feature_{i} not found in observation. Reward calculation requires reward model encoded features.")
 
-        # Compute initial progress for diff mode
-        if self.use_progress_diff and self.reward_at_every_step:
-            self.prev_progress = self._compute_reward()
-
         return obs
 
 

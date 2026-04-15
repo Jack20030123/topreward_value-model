@@ -217,6 +217,8 @@ class LearnedRewardWrapper(gym.Wrapper):
         use_progress_diff: bool = False,
         diff_gamma: float = 1.0,
         diff_reward_scale: float = 1.0,
+        use_base_reward: bool = False,
+        base_reward_value: float = -1.0,
     ):
         super(LearnedRewardWrapper, self).__init__(env)
         self.reward_model = reward_model
@@ -234,6 +236,8 @@ class LearnedRewardWrapper(gym.Wrapper):
         self.use_progress_diff = use_progress_diff
         self.diff_gamma = diff_gamma
         self.diff_reward_scale = diff_reward_scale
+        self.use_base_reward = use_base_reward
+        self.base_reward_value = base_reward_value
         self.prev_progress = None
 
         self.reward_at_every_step = self.reward_model.reward_at_every_step
@@ -421,6 +425,10 @@ class LearnedRewardWrapper(gym.Wrapper):
                 reward = 0
 
         reward /= self.reward_divisor
+
+        if self.use_base_reward:
+            if not info.get("success", False):
+                reward += self.base_reward_value
 
         # Success bonus
         if info.get("success", False):
@@ -855,4 +863,3 @@ class ACTTemporalEnsemblerWrapper(gym.Wrapper):
     def __setstate__(self, state):
         """Custom method for unpickling"""
         self.__dict__.update(state)
-

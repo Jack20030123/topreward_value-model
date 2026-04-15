@@ -20,9 +20,11 @@ reward_model:
   # use_progress_diff: use reward = scale * (gamma * P(s') - P(s)) instead of P(s)
   use_progress_diff: false
   diff_gamma: 1.0
-  diff_reward_scale: 1.0
+  diff_reward_scale: 1000.0
+  use_base_reward: false
+  base_reward_value: -1.0
 
-  success_bonus: 64.0
+  success_bonus: 0.0
 
 environment:
   is_state_based: false
